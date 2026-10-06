@@ -1,0 +1,17 @@
+import userModel from "./models/user.model.js";
+
+export const create = async function ({model, data, options={}}={}) {
+  return  await model.create([data], options);
+    
+};
+
+export const findOne = async function ({model, filter, options={}}={}) {
+  return  await model.findOne(filter, options);
+    
+};
+
+export const findById = async function ({model, id, options={}}={}) {
+  return  await model.findById(id, options);
+    
+};
+
