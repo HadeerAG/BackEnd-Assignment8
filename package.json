@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "nodemon src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +17,9 @@
     "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "google-auth-library": "^11.1.0",
+    "joi": "^18.2.9",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.10.2"
+    "mongoose": "^9.10.2",
+    "multer": "^2.4.0"
   }
 }
