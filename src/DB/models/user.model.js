@@ -68,10 +68,8 @@ provider:{
     enum:Object.values(ProviderEnum),
     default: ProviderEnum.system
 },
-isConfirmed:{
-    type: Boolean,
-    default:false
-},
+isConfirmed: Boolean,
+
 changeCredentialAt: Date
 
 },{

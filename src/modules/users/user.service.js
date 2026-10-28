@@ -6,9 +6,14 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import { OAuth2Client } from "google-auth-library";
 import { ProviderEnum } from "../../common/enum/user.enum.js";
-import { compare } from "bcrypt";
+import { hashSync } from "bcrypt";
 import { randomUUID } from 'node:crypto';
-import revokeTokenModel from './../../DB/models/revokeToken.model';
+import * as rService from "../../DB/service/redis.service.js";
+import sendEmail, { generate_otp } from "../../common/service/sendEmail.js";
+import { eventEmitter } from "../../common/utilities/event.js";
+import { email_template } from "../../common/utilities/email.template.js";
+import { sendEmailOtp } from "./user.helper.js";
+
 
 //================ signup ================
 export const signUp = async (req, res, next) => {
@@ -19,14 +24,35 @@ export const signUp = async (req, res, next) => {
     throw new Error("Email already exist", { cause: 409 });
   }
 
-  // if(!req.files|| !req.files.coverImages || req.files.coverImages.length == 0){
-  //     throw new Error("Please upload at least one file")
-  // }
+  if(!req.files|| !req.files.coverImages || req.files.coverImages.length == 0){
+      throw new Error("Please upload at least one file")
+  }
 
   const paths = [];
   for (const file of req.files.coverImages) {
     paths.push(file.path);
   }
+
+  const otp = await generate_otp();
+  const otpHash = await Hash(otp,12);
+  await rService.setValue({
+    key: `otp::${email}`,
+    value: otpHash,
+    ttl: 60 * 2
+  });
+    await rService.setValue({
+    key: `otp::max::${email}`,
+    value: 1,
+    ttl: 60 * 5
+  });
+  eventEmitter.emit("confirm_email",async ()=>{
+  await sendEmail({
+    to: email,
+    subject: "Confirm email",
+    html: `<h1>${otp}</h1>`
+  })
+  })
+  
 
   const user = await dbService.create({
     model: userModel,
@@ -39,7 +65,7 @@ export const signUp = async (req, res, next) => {
       age,
       gender,
       phone: Encrypt(phone),
-      profileImage: req.files.profileImage[0].path,
+      profileImage: req.files.profileImage[0].path || "",
       coverImages: paths,
     },
   });
@@ -47,6 +73,58 @@ export const signUp = async (req, res, next) => {
     .status(201)
     .json({ message: "Account created successfully", userData: user });
 };
+
+//================ resend OTP ================
+export const resendOtp = async (req, res) => {
+    const { email } = req.body;
+
+   await sendEmailOtp({email, isConfirmed: false})
+
+
+    return res.status(200).json({ message: "Done"});
+};
+
+//================ ConfirmEmail ================
+
+export const confirmEmail = async (req, res, next) => {
+  const { email, otp } = req.body;
+
+  const otpValue = await rService.getValue(`otp::${email}`)
+
+  if (!otpValue) {
+    throw new Error("otp erxpired",{cause:400})
+  }
+
+    if (!(await Compare(String(otp), otpValue))) {
+    throw new Error("Invalid otp", { cause: 400 });
+  }
+
+      const user = await dbService.findOneAndUpdate({
+    model: userModel,
+    filter: { email: email.toLowerCase(), isConfirmed:{$exists: false} },
+    update: {isConfirmed:true}
+  });
+
+  if (!user) {
+    throw new Error("email not exist or it's already confirmed", { cause: 400 });
+  }
+
+  await rService.deleteKey(`otp::${email}`)
+
+  // if(user.isConfirmed !== true){
+  //     return res.status(400).json({message: "email not confirmed"});
+  // }
+
+
+
+
+
+
+  return res
+    .status(200)
+    .json({ message: "done", user });
+};
+
 
 //================ signup with gmail ================
 
@@ -97,7 +175,7 @@ export const signUpWithGmail = async (req, res, next) => {
     .status(200)
     .json({ message: "done", tokens: { refresh_token, access_token } });
 
-  console.log({ payload });
+
 };
 
 //================ signin ================
@@ -107,7 +185,7 @@ export const signIn = async (req, res, next) => {
 
   const user = await dbService.findOne({
     model: userModel,
-    filter: { email: email.toLowerCase(), provider: "system" },
+    filter: { email: email.toLowerCase(),isConfirmed:{$exists: true}, provider: "system" },
   });
 
   if (!user) {
@@ -252,26 +330,73 @@ await req.user.save()
 
 };
 
+//================ forgetPassword ===============
+
+export const forgetPassword = async (req, res, next) => {
+
+const { email } = req.body
+
+await sendEmailOtp({email, isConfirmed: true, subject:"Forget password OTP"})
+
+res.status(200).json({ message: "OTP sent successfully to your email" });
+
+};
+
+//================ resetPassword ===============
+
+export const resetPassword = async (req, res, next) => {
+
+const { email, code, newPassword } = req.body
+
+const otp = await rService.getValue(`otp::${email}`);
+    if (!otp) throw new Error(`OTP is not correct`,{cause:403});
+
+    if(!await Compare(code,otp))throw new Error(`Invalid OTP`,{cause:404});
+
+    const user = dbService.findOneAndUpdate({
+      model: userModel,
+      filter:{email, isConfirmed: {$exists: true}},
+      update:{
+        password: await Hash(newPassword,12),
+        changeCredentialAt: new Date()
+      }
+    })
+
+    if(!user)throw new Error(`user not found`,{cause:404});
+    await rService.deleteKey(`otp::${email}`)
+
+res.status(200).json({ message: "Password resetted successfully" });
+
+};
+
 //================ logout ===============
 
 export const logout = async (req, res, next) => {
 
 const { flag } = req.query
 
-if(flag == "all"){
+if(flag && flag == "all"){
   req.user.changeCredentialAt = new Date()
   await req.user.save()
+await rService.deleteKey(await rService.keys(`revoke_token::${req.user._id}`))
 
 }else{
-  await dbService.create({
-    model: revokeTokenModel,
-    data:{
-      userId: req.user._id,
-      tokenId: req.decoded.jti,
-      expireAt: new Date(req.decoded.exp * 1000)
-    }
-
+  await rService.setValue({
+    key:`revoke_token::${req.user._id}::${req.decoded.jti}`,
+    value:`${req.decoded.jti}`,
+    ttl: req.decoded.exp - Math.floor((Date.now()/1000))
   })
+
+
+  // await dbService.create({
+  //   model: revokeTokenModel,
+  //   data:{
+  //     userId: req.user._id,
+  //     tokenId: req.decoded.jti,
+  //     expireAt: new Date(req.decoded.exp * 1000)
+  //   }
+
+  // })
 
 }
 

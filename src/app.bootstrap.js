@@ -2,6 +2,8 @@ import express from "express"
 import connectionDB from "./DB/connectionDB.js";
 import userRouter from "./modules/users/user.controller.js";
 import cors from "cors"
+import connectionRedis from "./DB/connection.redis.js";
+import { messageRouter } from "./modules/messages/messages.controller.js";
 const app = express();
 const port = 3000;
 
@@ -16,12 +18,13 @@ const bootstrap = async ()=>{
 app.use(express.json());
 
 await connectionDB();
-
+await connectionRedis()
 
 
 app.get("/",(req,res)=> res.status(200).json("Welcome to my Saraha app .. 🤗"));
 
 app.use("/users", userRouter)
+app.use("/messages", messageRouter)
 
 
 app.use("{/*demo}",(req,res,next)=>{

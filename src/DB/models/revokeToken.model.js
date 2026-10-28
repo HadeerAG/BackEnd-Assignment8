@@ -1,5 +1,5 @@
-import { ref, required } from "joi";
-import mongoose, { Schema } from "mongoose";
+
+import mongoose from "mongoose";
 
 const revokeTokenSchema = new mongoose.Schema({
     tokenId:{

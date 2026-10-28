@@ -15,3 +15,7 @@ export const findById = async function ({ model, id, options = {} } = {}) {
 export const findByIdAndUpdate = async function ({ model, id,update, options = {} } = {}) {
   return await model.findByIdAndUpdate(id,update ,{new: true, runValidators: true, ...options});
 };
+
+export const findOneAndUpdate = async function ({ model, filter,update, options = {} } = {}) {
+  return await model.findOneAndUpdate(filter,update ,{new: true, runValidators: true, ...options});
+};

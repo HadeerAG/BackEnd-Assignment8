@@ -15,12 +15,26 @@ export const signupSchema = {
     phone: joi.string()    
 }),
 
-files: joi.object({
-    profileImage: joi.array().items(generalRules.file.required()).required(),
-    coverImages: joi.array().items(generalRules.file.required()).messages({"any.required":"file is required"}),
+// files: joi.object({
+//     profileImage: joi.array().items(generalRules.file.required()).required(),
+//     coverImages: joi.array().items(generalRules.file.required()).messages({"any.required":"file is required"}),
     
+// })
 
-})
+};
+
+export const confirmEmailSchema = {
+    body: joi.object({
+    email: joi.string().email({tlds: {allow:true}}).required(),
+    otp: joi.string().pattern(/^[0-9]{6}$/).required(),  
+}),
+
+};
+
+export const reSendOTPSchema = {
+    body: joi.object({
+    email: joi.string().email({tlds: {allow:true}}).required(),
+}),
 
 };
 
@@ -60,4 +74,18 @@ body: joi.object({
     newPassword: joi.string().required(),
     cNewPassword: joi.string().valid(joi.ref("newPassword")),
 }),
-}
+};
+
+export const forgetPasswordSchema ={ 
+body: joi.object({
+    email: joi.string().email({tlds: {allow:true}}).required(),
+}),
+};
+
+export const resetPasswordSchema ={ 
+body: joi.object({
+    email: joi.string().email({tlds: {allow:true}}).required(),
+    newPassword: joi.string().required(),
+    code: joi.string().pattern(/^[0-9]{6}$/).required(), 
+}),
+};
