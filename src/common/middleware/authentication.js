@@ -25,7 +25,7 @@ export const authentication = async (req, res, next) => {
     throw new Error("email not exist", { cause: 404 });
   }
 
-  if(user?.isConfirmed) throw new Error("user is not confirmed yet",{cause:403})
+  if(!user?.isConfirmed) throw new Error("user is not confirmed yet",{cause:403})
 
   if(user?.changeCredentialAt?.getTime()> decoded.iat*1000){
     throw new Error("This device's token expired, you should login again",{cause:400})

@@ -8,6 +8,24 @@ export const findOne = async function ({ model, filter, options = {} } = {}) {
   return await model.findOne(filter, options);
 };
 
+export const find = async function ({ model, filter, options = {} } = {}) {
+  const data = model.find(filter);
+  if (options?.limit) {
+    data.limit(options.limit)
+  }
+  if (options?.skip) {
+    data.skip(options.skip)
+  }
+  if (options?.sort) {
+    data.sort(options.sort)
+  }
+  if (options?.populate) {
+    data.populate(options.populate)
+  }
+
+  return data.exec()
+};
+
 export const findById = async function ({ model, id, options = {} } = {}) {
   return await model.findById(id, options);
 };

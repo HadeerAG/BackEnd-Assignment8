@@ -12,7 +12,7 @@ file: joi.object({
         encoding:joi.string().required(),
         mimetype:joi.string().required(),
         path:joi.string(),
-        distination:joi.string(),
+        destination:joi.string(),
         filename:joi.string(),
         size:joi.number().required()
 

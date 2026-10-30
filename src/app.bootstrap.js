@@ -11,6 +11,10 @@ const port = 3000;
 
 const bootstrap = async ()=>{
 
+  app.set("case sensitive routing", true)
+  app.set("strict routing", true)
+
+
   app.use(cors({
     origin:"*"
   }))
@@ -37,9 +41,12 @@ app.use("{/*demo}",(req,res,next)=>{
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.cause || 500).json({message: err.message, stack: err.stack});
+  console.log("req", req.body);
+
 });
 
 app.listen(port, ()=> console.log(`Example app is listening on port ${port} `));
 };
+
 
 export default bootstrap

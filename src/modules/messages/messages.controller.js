@@ -4,8 +4,9 @@ import { multer_enum } from "../../common/enum/multer.enum.js";
 import { Validation } from "../../common/middleware/validation.js";
 import * as MV from "./message.validation.js";
 import * as MS from "./messages.service.js";
+import { authentication } from "../../common/middleware/authentication.js";
 
-export const messageRouter = Router()
+export const messageRouter = Router({strict: true})
 
 messageRouter.post("/",
     multerLocal({
@@ -15,3 +16,5 @@ messageRouter.post("/",
     Validation(MV.createMessageSchema),
     MS.createMessage
 )
+messageRouter.get("/",authentication,MS.getMessages);
+messageRouter.get("/:id",authentication,MS.getMessageById);

@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
         cb(null, resolve(fullPath) )
     },
     filename: function(req,file,cb){ 
-        console.log(file);
+        // console.log(file);
                
               cb(null, randomUUID() + "-" + file.originalname )  
 

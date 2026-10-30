@@ -9,7 +9,7 @@ import { multerLocal } from "../../common/middleware/multer.js";
 import { multer_enum } from "../../common/enum/multer.enum.js";
 
 
-const userRouter = Router()
+const userRouter = Router({strict: true})
 
 
 
